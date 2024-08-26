@@ -1,4 +1,4 @@
-package com.cadastro_profissionais.api;
+package com.cadastro.profissionais.api;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

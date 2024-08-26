@@ -1,4 +1,4 @@
-package com.cadastro_profissionais.api;
+package com.cadastro.profissionais.api;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
