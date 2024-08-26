@@ -1,11 +1,14 @@
 package com.cadastro.profissionais.api.controller;
 
+import com.cadastro.profissionais.api.domain.Contato;
 import com.cadastro.profissionais.api.domain.Profissional;
+import com.cadastro.profissionais.api.repositorie.ContatoRepository;
 import com.cadastro.profissionais.api.repositorie.ProfissionalRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -15,13 +18,16 @@ public class ProfissionalController {
     @Autowired
     private ProfissionalRepository profissionalRepository;
 
+    @Autowired
+    private ContatoRepository contatoRepository;
+
     @GetMapping
     public List<Profissional> getProfissionais(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) List<String> fields) {
 
         if (q != null && !q.isEmpty()) {
-            return profissionalRepository.findByAtivoTrueAndNomeContainingIgnoreCaseOrEspecialidadeContainingIgnoreCaseOrTelefoneContainingIgnoreCaseOrEmailContainingIgnoreCase(q, q, q, q);
+            return profissionalRepository.findByNomeContainingIgnoreCaseOrCargoContainingIgnoreCase(q, q);
         } else {
             return profissionalRepository.findAll()
                     .stream()
@@ -40,8 +46,23 @@ public class ProfissionalController {
 
     @PostMapping
     public ResponseEntity<String> createProfissional(@RequestBody Profissional profissional) {
-        Profissional novoProfissional = profissionalRepository.save(profissional);
-        return ResponseEntity.ok("Sucesso, profissional com id " + novoProfissional.getId() + " cadastrado");
+
+        List<Profissional> profissionalDB = profissionalRepository.findByNomeContainingIgnoreCaseAndCargoContainingIgnoreCaseAndNascimento(
+                profissional.getNome(), profissional.getCargo(), profissional.getNascimento());
+
+        if (profissionalDB.isEmpty()) {
+            profissional.setCreatedDate(new Date());
+            Profissional novoProfissional = profissionalRepository.save(profissional);
+            for (Contato contato : profissional.getContatos()) {
+                contato.setCreatedDate(new Date());
+                contato.setProfissional(profissional);
+                contatoRepository.save(contato);
+            }
+            return ResponseEntity.ok("Sucesso, profissional com id " + novoProfissional.getId() + " cadastrado");
+        } else {
+            return ResponseEntity.ok("Profissional já está cadastrado.");
+        }
+
     }
 
     @PutMapping("/{id}")
@@ -50,9 +71,9 @@ public class ProfissionalController {
                 .filter(Profissional::getAtivo)
                 .map(profissional -> {
                     profissional.setNome(profissionalAtualizado.getNome());
-                    profissional.setEspecialidade(profissionalAtualizado.getEspecialidade());
-                    profissional.setTelefone(profissionalAtualizado.getTelefone());
-                    profissional.setEmail(profissionalAtualizado.getEmail());
+                    profissional.setCargo(profissionalAtualizado.getCargo());
+                    profissional.setNascimento(profissionalAtualizado.getNascimento());
+                    profissional.setCreatedDate(profissionalAtualizado.getCreatedDate());
                     // Atualize outros campos conforme necessário
                     profissionalRepository.save(profissional);
                     return ResponseEntity.ok("Sucesso, cadastro alterado");

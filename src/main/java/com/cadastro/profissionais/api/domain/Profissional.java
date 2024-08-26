@@ -3,6 +3,9 @@ package com.cadastro.profissionais.api.domain;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.Date;
+import java.util.List;
+
 @Data
 @Entity
 @Table(name = "profissionais")
@@ -12,9 +15,11 @@ public class Profissional {
     private Long id;
 
     private String nome;
-    private String especialidade;
-    private String telefone;
-    private String email;
+    private String cargo;
+    private Date nascimento;
+    private Date createdDate;
+    private Boolean ativo = true;
 
-    private Boolean ativo = true; // Para exclusão lógica
+    @OneToMany(mappedBy = "profissional")
+    private List<Contato> contatos;
 }
