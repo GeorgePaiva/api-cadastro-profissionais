@@ -97,8 +97,7 @@ public class ProfissionalController {
                     profissional.setNome(profissionalAtualizado.getNome());
                     profissional.setCargo(profissionalAtualizado.getCargo());
                     profissional.setNascimento(profissionalAtualizado.getNascimento());
-                    profissional.setCreatedDate(profissionalAtualizado.getCreatedDate());
-                    // Atualize outros campos conforme necessário
+                    profissional.setCreatedDate(new Date());
                     profissionalRepository.save(profissional);
                     return ResponseEntity.ok("Sucesso, cadastro alterado");
                 })

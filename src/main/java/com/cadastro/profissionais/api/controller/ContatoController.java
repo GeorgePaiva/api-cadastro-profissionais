@@ -100,7 +100,7 @@ public class ContatoController {
                 .map(contato -> {
                     contato.setNome(contatoAtualizado.getNome());
                     contato.setContato(contatoAtualizado.getContato());
-                    contato.setCreatedDate(contatoAtualizado.getCreatedDate());
+                    contato.setCreatedDate(new Date());
                     contato.setProfissional(contatoAtualizado.getProfissional());
                     contatoRepository.save(contato);
                     return ResponseEntity.ok("Sucesso, cadastro alterado");
