@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Entity
@@ -22,4 +24,14 @@ public class Profissional {
 
     @OneToMany(mappedBy = "profissional")
     private List<Contato> contatos;
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", id);
+        map.put("nome", nome);
+        map.put("cargo", cargo);
+        map.put("nascimento", nascimento);
+//        map.put("contatos", contatos != null ? contatos.get(0).getNome() : null);
+        return map;
+    }
 }

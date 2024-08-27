@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Data
 @Entity
@@ -23,7 +25,17 @@ public class Contato {
 
     @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "profissional_id", nullable = false)
+    @JoinColumn(name = "profissional_id", nullable = true)
     private Profissional profissional;
+
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", id);
+        map.put("nome", nome);
+        map.put("contato", contato);
+        map.put("profissional", profissional != null ? profissional.getNome() : null);
+        return map;
+    }
 }
 

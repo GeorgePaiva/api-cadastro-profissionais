@@ -5,10 +5,14 @@ import com.cadastro.profissionais.api.repositorie.ContatoRepository;
 import com.cadastro.profissionais.api.repositorie.ProfissionalRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.lang.reflect.Field;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/contatos")
@@ -21,15 +25,38 @@ public class ContatoController {
     private ProfissionalRepository profissionalRepository;
 
     @GetMapping
-    public List<Contato> getContatos(
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false) List<String> fields) {
+    public ResponseEntity<List<Map<String, Object>>> getContatos(
+            @RequestParam(value = "q", required = false) String q,
+            @RequestParam(value = "fields", required = false) List<String> fields) {
 
+        // Busca todos os contatos, com ou sem filtro
+        List<Contato> contatos;
         if (q != null && !q.isEmpty()) {
-            return contatoRepository.findByNomeContainingIgnoreCaseOrContatoContainingIgnoreCase(q, q);
+            contatos = contatoRepository.findByQuery(q);
         } else {
-            return contatoRepository.findAll();
+            contatos = contatoRepository.findAll();
         }
+
+        // Se 'fields' for especificado, filtra os campos retornados
+        List<Map<String, Object>> result = contatos.stream()
+                .map(contato -> filterFields(contato, fields))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(result);
+    }
+
+    private Map<String, Object> filterFields(Contato contato, List<String> fields) {
+        if (fields == null || fields.isEmpty()) {
+            return contato.toMap();
+        }
+
+        return fields.stream()
+                .filter(field -> ReflectionUtils.findField(Contato.class, field) != null)
+                .collect(Collectors.toMap(field -> field, field -> {
+                    Field f = ReflectionUtils.findField(Contato.class, field);
+                    ReflectionUtils.makeAccessible(f);
+                    return ReflectionUtils.getField(f, contato);
+                }));
     }
 
     @GetMapping("/{id}")
@@ -42,7 +69,7 @@ public class ContatoController {
     @PostMapping
     public ResponseEntity<String> createContato(@RequestBody Contato contato) {
 
-        List<Contato> contadoDB = contatoRepository.findByNomeContainingIgnoreCaseOrContatoContainingIgnoreCase(contato.getNome(), contato.getContato());
+        List<Contato> contadoDB = contatoRepository.findContatoByNomeAndContatoAndProfissional(contato.getNome(), contato.getContato());
 
         if (contadoDB.isEmpty()) {
             contato.setCreatedDate(new Date());
