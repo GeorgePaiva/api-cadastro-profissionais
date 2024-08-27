@@ -3,10 +3,8 @@ package com.cadastro.profissionais.api.domain;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Data
 @Entity
@@ -31,7 +29,23 @@ public class Profissional {
         map.put("nome", nome);
         map.put("cargo", cargo);
         map.put("nascimento", nascimento);
-//        map.put("contatos", contatos != null ? contatos.get(0).getNome() : null);
+
+        // Mapeia os contatos para o formato desejado
+        if (contatos != null && !contatos.isEmpty()) {
+            List<Map<String, Object>> contatosList = contatos.stream().map(contato -> {
+                Map<String, Object> contatoMap = new HashMap<>();
+                contatoMap.put("id", contato.getId());
+                contatoMap.put("nome", contato.getNome());
+                contatoMap.put("contato", contato.getContato());
+                contatoMap.put("createdDate", contato.getCreatedDate());
+                return contatoMap;
+            }).collect(Collectors.toList());
+
+            map.put("contatos", contatosList);
+        } else {
+            map.put("contatos", Collections.emptyList());
+        }
+
         return map;
     }
 }
