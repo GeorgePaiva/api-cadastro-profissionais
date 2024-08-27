@@ -15,4 +15,6 @@ public interface ProfissionalRepository extends JpaRepository<Profissional, Long
 
     @Query("SELECT p FROM Profissional p WHERE p.nome LIKE %:q% OR p.cargo LIKE %:q%")
     List<Profissional> findByQuery(@Param("q") String q);
+
+    Profissional findByNome(String nome);
 }

@@ -1,6 +1,7 @@
 package com.cadastro.profissionais.api.controller;
 
 import com.cadastro.profissionais.api.domain.Contato;
+import com.cadastro.profissionais.api.domain.Profissional;
 import com.cadastro.profissionais.api.repositorie.ContatoRepository;
 import com.cadastro.profissionais.api.repositorie.ProfissionalRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,7 +70,18 @@ public class ContatoController {
     @PostMapping
     public ResponseEntity<String> createContato(@RequestBody Contato contato) {
 
-        List<Contato> contadoDB = contatoRepository.findContatoByNomeAndContatoAndProfissional(contato.getNome(), contato.getContato());
+        // Buscando o profissional pelo nome
+        if (contato.getProfissional() != null && contato.getProfissional().getNome() != null) {
+            Profissional profissional = profissionalRepository.findByNome(contato.getProfissional().getNome());
+            if (profissional != null) {
+                contato.setProfissional(profissional);
+            } else {
+                return ResponseEntity.badRequest().body(null);
+            }
+        }
+
+        List<Contato> contadoDB = contatoRepository.findContatoByNomeAndContatoAndProfissional(contato.getNome(),
+                contato.getContato(), contato.getProfissional());
 
         if (contadoDB.isEmpty()) {
             contato.setCreatedDate(new Date());
