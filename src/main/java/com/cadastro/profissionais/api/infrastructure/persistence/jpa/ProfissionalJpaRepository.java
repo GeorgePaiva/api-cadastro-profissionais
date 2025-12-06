@@ -1,4 +1,4 @@
-package com.cadastro.profissionais.api.repositorie;
+package com.cadastro.profissionais.api.infrastructure.persistence.jpa;
 
 import com.cadastro.profissionais.api.domain.Profissional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.Date;
 import java.util.List;
 
-public interface ProfissionalRepository extends JpaRepository<Profissional, Long> {
+public interface ProfissionalJpaRepository extends JpaRepository<Profissional, Long> {
 
     @Query("SELECT p FROM Profissional p WHERE p.nome LIKE %:nome% AND p.cargo LIKE %:cargo% AND p.nascimento = :nascimento")
     List<Profissional> findProfissionalByNomeAndCargoAndNascimento(String nome, String cargo, Date nascimento);

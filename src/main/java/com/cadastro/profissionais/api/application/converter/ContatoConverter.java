@@ -1,4 +1,4 @@
-package com.cadastro.profissionais.api.util;
+package com.cadastro.profissionais.api.application.converter;
 
 import com.cadastro.profissionais.api.domain.Contato;
 import com.cadastro.profissionais.api.domain.Profissional;
@@ -9,7 +9,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class ContatoConverter {
 
-    public ContatoResponseDTO convertToDto(Contato contato) {
+    private final ProfissionalConverter profissionalConverter;
+
+    public ContatoConverter(ProfissionalConverter profissionalConverter) {
+        this.profissionalConverter = profissionalConverter;
+    }
+
+    public ContatoResponseDTO toDto(Contato contato) {
         ContatoResponseDTO dto = new ContatoResponseDTO();
         dto.setId(contato.getId());
         dto.setNome(contato.getNome());
@@ -17,13 +23,13 @@ public class ContatoConverter {
         dto.setCreatedDate(contato.getCreatedDate());
 
         if (contato.getProfissional() != null) {
-            dto.setProfissional(ProfissionalConverter.convertToDto(contato.getProfissional()));
+            dto.setProfissional(profissionalConverter.toDto(contato.getProfissional()));
         }
 
         return dto;
     }
 
-    public Contato convertToEntity(ContatoRequestDTO dto, Profissional profissional) {
+    public Contato toEntity(ContatoRequestDTO dto, Profissional profissional) {
         Contato contato = new Contato();
         contato.setNome(dto.getNome());
         contato.setContato(dto.getContato());
