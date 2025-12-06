@@ -1,14 +1,14 @@
-# API de Cadastro de Profissionais
+# Professional Registry API
 
-API REST em Java 17 com Spring Boot para gerenciar profissionais e seus contatos.
+REST API built with Java 17 and Spring Boot to manage professionals and their contact information.
 
-## Requisitos
+## Requirements
 - Java 17+
 - Maven 3+
-- PostgreSQL (configuração padrão usa database `cadpro` em `localhost:5432` com usuário/senha `postgres`)
+- PostgreSQL (default configuration expects database `cadpro` on `localhost:5432` with user/password `postgres`)
 
-## Configuração
-As propriedades padrão de conexão e JPA estão em `src/main/resources/application.properties`. Ajuste conforme necessário para seu ambiente de banco de dados.
+## Configuration
+Default database and JPA properties live in `src/main/resources/application.properties`. Adjust them to match your local environment if needed.
 
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/cadpro
@@ -20,35 +20,35 @@ spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.hibernate.ddl-auto=update
 ```
 
-## Executando a aplicação
-1. Instale dependências e rode a aplicação:
+## Running the application
+1. Install dependencies and start the application:
    ```bash
    ./mvnw spring-boot:run
    ```
-2. A API sobe por padrão em `http://localhost:8080`.
+2. The API starts on `http://localhost:8080` by default.
 
 ## Endpoints
-A API expõe recursos para profissionais e contatos. Em ambos é possível filtrar via `q` (busca textual) e limitar campos retornados com `fields` (lista separada por vírgula).
+The API exposes resources for professionals and contacts. Both resources support text search via `q` and field selection via `fields` (comma-separated list).
 
-### Profissionais `/profissionais`
-- `GET /profissionais`: lista profissionais ativos, com suporte a `?q=` e `?fields=`.
-- `GET /profissionais/{id}`: busca profissional ativo por ID.
-- `POST /profissionais`: cria profissional. Exemplo de payload:
+### Professionals `/profissionais`
+- `GET /profissionais`: lists active professionals with optional `?q=` and `?fields=` filters.
+- `GET /profissionais/{id}`: retrieves an active professional by ID.
+- `POST /profissionais`: creates a professional. Example payload:
   ```json
   {
     "nome": "Ana Souza",
-    "cargo": "Analista",
+    "cargo": "Analyst",
     "nascimento": "1990-05-10T00:00:00.000Z",
     "contatos": []
   }
   ```
-- `PUT /profissionais/{id}`: atualiza dados do profissional.
-- `DELETE /profissionais/{id}`: marca o profissional como inativo (soft delete).
+- `PUT /profissionais/{id}`: updates a professional.
+- `DELETE /profissionais/{id}`: marks the professional as inactive (soft delete).
 
-### Contatos `/contatos`
-- `GET /contatos`: lista contatos com suporte a `?q=` e `?fields=`.
-- `GET /contatos/{id}`: busca contato por ID.
-- `POST /contatos`: cria contato associado a um profissional. Exemplo de payload:
+### Contacts `/contatos`
+- `GET /contatos`: lists contacts with optional `?q=` and `?fields=` filters.
+- `GET /contatos/{id}`: retrieves a contact by ID.
+- `POST /contatos`: creates a contact associated with a professional. Example payload:
   ```json
   {
     "nome": "Telefone",
@@ -56,16 +56,21 @@ A API expõe recursos para profissionais e contatos. Em ambos é possível filtr
     "profissional": { "nome": "Ana Souza" }
   }
   ```
-- `PUT /contatos/{id}`: atualiza contato existente.
-- `DELETE /contatos/{id}`: exclui contato.
+- `PUT /contatos/{id}`: updates a contact.
+- `DELETE /contatos/{id}`: deletes a contact.
 
-## Comportamento de negócio
-- Criação de profissionais e contatos evita duplicidade usando buscas por dados existentes.
-- Profissionais são desativados em exclusão em vez de removidos definitivamente.
-- Respostas podem ser reduzidas ao subconjunto de campos solicitado em `fields`.
+## Business rules
+- Creation of professionals and contacts avoids duplicates by searching for existing data first.
+- Professionals are deactivated instead of being permanently removed.
+- Responses can be reduced to a subset of fields requested via the `fields` parameter.
 
-## Testes
-Execute a suíte de testes automatizados com:
+## Tests
+Run the automated test suite with:
 ```bash
 ./mvnw test
 ```
+
+The project includes unit and integration coverage:
+- Service layer unit tests validating professional and contact management behaviors (creation, updates, soft delete, duplicate checks).
+- Repository tests for the JPA adapters that exercise search, filtering, and persistence flows.
+- Controller integration tests that start the Spring context and verify API responses for professionals and contacts.
