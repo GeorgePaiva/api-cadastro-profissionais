@@ -38,7 +38,6 @@ public class ProfissionalConverter {
         profissional.setCargo(dto.getCargo());
         profissional.setNascimento(dto.getNascimento());
         profissional.setAtivo(true);
-        profissional.setContatos(dto.getContatos());
         return profissional;
     }
 

@@ -3,6 +3,7 @@ package com.cadastro.profissionais.api.controller;
 import com.cadastro.profissionais.api.application.port.in.ManageProfissionalUseCase;
 import com.cadastro.profissionais.api.domain.dto.ProfissionalRequestDTO;
 import com.cadastro.profissionais.api.domain.dto.ProfissionalResponseDTO;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,12 +35,12 @@ public class ProfissionalController {
     }
 
     @PostMapping
-    public ResponseEntity<String> createProfissional(@RequestBody ProfissionalRequestDTO profissionalRequest) {
+    public ResponseEntity<String> createProfissional(@Valid @RequestBody ProfissionalRequestDTO profissionalRequest) {
         return profissionalUseCase.createProfissional(profissionalRequest);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateProfissional(@PathVariable Long id, @RequestBody ProfissionalRequestDTO profissionalRequest) {
+    public ResponseEntity<String> updateProfissional(@PathVariable Long id, @Valid @RequestBody ProfissionalRequestDTO profissionalRequest) {
         String result = profissionalUseCase.updateProfissional(id, profissionalRequest);
         return ResponseEntity.ok(result);
     }

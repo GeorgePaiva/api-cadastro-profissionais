@@ -1,6 +1,7 @@
 package com.cadastro.profissionais.api.application.service;
 
 import com.cadastro.profissionais.api.application.converter.ProfissionalConverter;
+import com.cadastro.profissionais.api.application.converter.ContatoConverter;
 import com.cadastro.profissionais.api.application.port.out.ProfissionalRepositoryPort;
 import com.cadastro.profissionais.api.domain.Profissional;
 import com.cadastro.profissionais.api.domain.dto.ProfissionalRequestDTO;
@@ -31,6 +32,9 @@ class ManageProfissionalServiceTest {
 
     @Mock
     private ProfissionalConverter profissionalConverter;
+
+    @Mock
+    private ContatoConverter contatoConverter;
 
     @InjectMocks
     private ManageProfissionalService manageProfissionalService;
@@ -104,6 +108,7 @@ class ManageProfissionalServiceTest {
 
         when(profissionalRepository.findByNomeCargoNascimento(any(), any(), any())).thenReturn(List.of());
         when(profissionalConverter.toEntity(requestDTO)).thenReturn(entity);
+        when(contatoConverter.toEntities(any(), any())).thenReturn(List.of());
         when(profissionalRepository.save(entity)).thenReturn(entity);
 
         ResponseEntity<String> response = manageProfissionalService.createProfissional(requestDTO);

@@ -1,9 +1,11 @@
 package com.cadastro.profissionais.api.application.service;
 
 import com.cadastro.profissionais.api.application.converter.ProfissionalConverter;
+import com.cadastro.profissionais.api.application.converter.ContatoConverter;
 import com.cadastro.profissionais.api.application.port.in.ManageProfissionalUseCase;
 import com.cadastro.profissionais.api.application.port.out.ProfissionalRepositoryPort;
 import com.cadastro.profissionais.api.domain.Profissional;
+import com.cadastro.profissionais.api.domain.Contato;
 import com.cadastro.profissionais.api.domain.dto.ProfissionalRequestDTO;
 import com.cadastro.profissionais.api.domain.dto.ProfissionalResponseDTO;
 import org.springframework.http.ResponseEntity;
@@ -19,11 +21,14 @@ public class ManageProfissionalService implements ManageProfissionalUseCase {
 
     private final ProfissionalRepositoryPort profissionalRepository;
     private final ProfissionalConverter profissionalConverter;
+    private final ContatoConverter contatoConverter;
 
     public ManageProfissionalService(ProfissionalRepositoryPort profissionalRepository,
-                                     ProfissionalConverter profissionalConverter) {
+                                     ProfissionalConverter profissionalConverter,
+                                     ContatoConverter contatoConverter) {
         this.profissionalRepository = profissionalRepository;
         this.profissionalConverter = profissionalConverter;
+        this.contatoConverter = contatoConverter;
     }
 
     @Override
@@ -53,6 +58,8 @@ public class ManageProfissionalService implements ManageProfissionalUseCase {
         if (profissionalDB.isEmpty()) {
             Profissional profissional = profissionalConverter.toEntity(profissionalRequest);
             profissional.setCreatedDate(new Date());
+            List<Contato> contatos = contatoConverter.toEntities(profissionalRequest.getContatos(), profissional);
+            profissional.setContatos(contatos);
             profissionalRepository.save(profissional);
             return ResponseEntity.ok("Sucesso, profissional com id " + profissional.getId() + " cadastrado");
         }

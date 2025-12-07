@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,6 +74,8 @@ class ProfissionalControllerIntegrationTest {
     void shouldCreateProfissional() throws Exception {
         ProfissionalRequestDTO request = new ProfissionalRequestDTO();
         request.setNome("Jane");
+        request.setCargo("Dev");
+        request.setNascimento(new Date(0));
         Mockito.when(manageProfissionalUseCase.createProfissional(any()))
                 .thenReturn(org.springframework.http.ResponseEntity.ok("created"));
 
@@ -87,11 +90,28 @@ class ProfissionalControllerIntegrationTest {
     void shouldUpdateProfissional() throws Exception {
         Mockito.when(manageProfissionalUseCase.updateProfissional(any(), any())).thenReturn("updated");
 
+        ProfissionalRequestDTO request = new ProfissionalRequestDTO();
+        request.setNome("Jane");
+        request.setCargo("Dev");
+        request.setNascimento(new Date(0));
+
         mockMvc.perform(put("/profissionais/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new ProfissionalRequestDTO())))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("updated"));
+    }
+
+    @Test
+    void shouldReturnBadRequestForInvalidProfissionalPayload() throws Exception {
+        ProfissionalRequestDTO invalidRequest = new ProfissionalRequestDTO();
+        invalidRequest.setCargo("Dev");
+
+        mockMvc.perform(post("/profissionais")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("nome"));
     }
 
     @Test
