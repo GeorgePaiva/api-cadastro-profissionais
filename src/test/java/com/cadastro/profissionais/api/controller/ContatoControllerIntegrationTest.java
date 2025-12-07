@@ -66,6 +66,7 @@ class ContatoControllerIntegrationTest {
     void shouldCreateContato() throws Exception {
         ContatoRequestDTO request = new ContatoRequestDTO();
         request.setNome("Telefone");
+        request.setContato("123456789");
         Mockito.when(manageContatoUseCase.createContato(Mockito.any()))
                 .thenReturn(org.springframework.http.ResponseEntity.ok("created"));
 
@@ -81,11 +82,27 @@ class ContatoControllerIntegrationTest {
         Mockito.when(manageContatoUseCase.updateContato(Mockito.eq(1L), Mockito.any()))
                 .thenReturn(org.springframework.http.ResponseEntity.ok("updated"));
 
+        ContatoRequestDTO request = new ContatoRequestDTO();
+        request.setNome("Telefone");
+        request.setContato("123456789");
+
         mockMvc.perform(put("/contatos/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new ContatoRequestDTO())))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("updated"));
+    }
+
+    @Test
+    void shouldReturnBadRequestForInvalidContatoPayload() throws Exception {
+        ContatoRequestDTO invalidRequest = new ContatoRequestDTO();
+        invalidRequest.setContato("123456789");
+
+        mockMvc.perform(post("/contatos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("nome"));
     }
 
     @Test

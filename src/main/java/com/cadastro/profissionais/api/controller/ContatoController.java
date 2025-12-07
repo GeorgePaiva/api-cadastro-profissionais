@@ -3,6 +3,7 @@ package com.cadastro.profissionais.api.controller;
 import com.cadastro.profissionais.api.application.port.in.ManageContatoUseCase;
 import com.cadastro.profissionais.api.domain.dto.ContatoRequestDTO;
 import com.cadastro.profissionais.api.domain.dto.ContatoResponseDTO;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,12 +36,12 @@ public class ContatoController {
     }
 
     @PostMapping
-    public ResponseEntity<String> createContato(@RequestBody ContatoRequestDTO contatoRequest) {
+    public ResponseEntity<String> createContato(@Valid @RequestBody ContatoRequestDTO contatoRequest) {
         return contatoUseCase.createContato(contatoRequest);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateContato(@PathVariable Long id, @RequestBody ContatoRequestDTO contatoRequest) {
+    public ResponseEntity<String> updateContato(@PathVariable Long id, @Valid @RequestBody ContatoRequestDTO contatoRequest) {
         return contatoUseCase.updateContato(id, contatoRequest);
     }
 
