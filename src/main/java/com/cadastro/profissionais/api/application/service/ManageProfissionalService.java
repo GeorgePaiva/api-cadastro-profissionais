@@ -8,9 +8,13 @@ import com.cadastro.profissionais.api.domain.Profissional;
 import com.cadastro.profissionais.api.domain.Contato;
 import com.cadastro.profissionais.api.domain.dto.ProfissionalRequestDTO;
 import com.cadastro.profissionais.api.domain.dto.ProfissionalResponseDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +26,7 @@ public class ManageProfissionalService implements ManageProfissionalUseCase {
     private final ProfissionalRepositoryPort profissionalRepository;
     private final ProfissionalConverter profissionalConverter;
     private final ContatoConverter contatoConverter;
+    private static final Logger logger = LoggerFactory.getLogger(ManageProfissionalService.class);
 
     public ManageProfissionalService(ProfissionalRepositoryPort profissionalRepository,
                                      ProfissionalConverter profissionalConverter,
@@ -33,63 +38,113 @@ public class ManageProfissionalService implements ManageProfissionalUseCase {
 
     @Override
     public List<ProfissionalResponseDTO> getProfissionais(String q, List<String> fields) {
-        List<Profissional> profissionais = (q != null && !q.isEmpty())
-                ? profissionalRepository.findByQuery(q)
-                : profissionalRepository.findAll();
+        Instant start = Instant.now();
+        logger.info("Retrieving professionals with query={} and fields={}", q, fields);
+        try {
+            List<Profissional> profissionais = (q != null && !q.isEmpty())
+                    ? profissionalRepository.findByQuery(q)
+                    : profissionalRepository.findAll();
 
-        return profissionais.stream()
-                .filter(Profissional::getAtivo)
-                .map(profissional -> filterFields(profissionalConverter.toResponseDto(profissional), fields))
-                .collect(Collectors.toList());
+            List<ProfissionalResponseDTO> responses = profissionais.stream()
+                    .filter(Profissional::getAtivo)
+                    .map(profissional -> filterFields(profissionalConverter.toResponseDto(profissional), fields))
+                    .collect(Collectors.toList());
+
+            logger.info("Retrieved {} professionals in {} ms", responses.size(), elapsedMillis(start));
+            return responses;
+        } catch (Exception ex) {
+            logger.error("Error retrieving professionals in {} ms", elapsedMillis(start), ex);
+            throw ex;
+        }
     }
 
     @Override
     public Optional<ProfissionalResponseDTO> getProfissionalById(Long id) {
-        return profissionalRepository.findById(id)
-                .filter(Profissional::getAtivo)
-                .map(profissionalConverter::toResponseDto);
+        Instant start = Instant.now();
+        logger.info("Fetching professional by id={}", id);
+        try {
+            Optional<ProfissionalResponseDTO> profissional = profissionalRepository.findById(id)
+                    .filter(Profissional::getAtivo)
+                    .map(profissionalConverter::toResponseDto);
+            logger.info("Finished fetching professional id={} found={} in {} ms", id, profissional.isPresent(), elapsedMillis(start));
+            return profissional;
+        } catch (Exception ex) {
+            logger.error("Error fetching professional id={} in {} ms", id, elapsedMillis(start), ex);
+            throw ex;
+        }
     }
 
     @Override
     public ResponseEntity<String> createProfissional(ProfissionalRequestDTO profissionalRequest) {
-        List<Profissional> profissionalDB = profissionalRepository.findByNomeCargoNascimento(
-                profissionalRequest.getNome(), profissionalRequest.getCargo(), profissionalRequest.getNascimento());
+        Instant start = Instant.now();
+        logger.info("Creating professional with nome={} cargo={} nascimento={} and {} contatos",
+                profissionalRequest.getNome(), profissionalRequest.getCargo(), profissionalRequest.getNascimento(),
+                profissionalRequest.getContatos() != null ? profissionalRequest.getContatos().size() : 0);
+        try {
+            List<Profissional> profissionalDB = profissionalRepository.findByNomeCargoNascimento(
+                    profissionalRequest.getNome(), profissionalRequest.getCargo(), profissionalRequest.getNascimento());
 
-        if (profissionalDB.isEmpty()) {
-            Profissional profissional = profissionalConverter.toEntity(profissionalRequest);
-            profissional.setCreatedDate(new Date());
-            List<Contato> contatos = contatoConverter.toEntities(profissionalRequest.getContatos(), profissional);
-            profissional.setContatos(contatos);
-            profissionalRepository.save(profissional);
-            return ResponseEntity.ok("Sucesso, profissional com id " + profissional.getId() + " cadastrado");
+            if (profissionalDB.isEmpty()) {
+                Profissional profissional = profissionalConverter.toEntity(profissionalRequest);
+                profissional.setCreatedDate(new Date());
+                List<Contato> contatos = contatoConverter.toEntities(profissionalRequest.getContatos(), profissional);
+                profissional.setContatos(contatos);
+                profissionalRepository.save(profissional);
+                logger.info("Professional created with id={} in {} ms", profissional.getId(), elapsedMillis(start));
+                return ResponseEntity.ok("Sucesso, profissional com id " + profissional.getId() + " cadastrado");
+            }
+
+            logger.info("Professional already registered, skipping creation in {} ms", elapsedMillis(start));
+            return ResponseEntity.ok("Contato já está cadastrado.");
+        } catch (Exception ex) {
+            logger.error("Error creating professional in {} ms", elapsedMillis(start), ex);
+            throw ex;
         }
-
-        return ResponseEntity.ok("Contato já está cadastrado.");
     }
 
     @Override
     public String updateProfissional(Long id, ProfissionalRequestDTO profissionalRequest) {
-        return profissionalRepository.findById(id)
-                .filter(Profissional::getAtivo)
-                .map(profissional -> {
-                    profissionalConverter.updateEntity(profissional, profissionalRequest);
-                    profissional.setCreatedDate(new Date());
-                    profissionalRepository.save(profissional);
-                    return "Sucesso, cadastro alterado";
-                })
-                .orElse("Profissional não encontrado");
+        Instant start = Instant.now();
+        logger.info("Updating professional id={} with nome={} cargo={}", id, profissionalRequest.getNome(), profissionalRequest.getCargo());
+        try {
+            String response = profissionalRepository.findById(id)
+                    .filter(Profissional::getAtivo)
+                    .map(profissional -> {
+                        profissionalConverter.updateEntity(profissional, profissionalRequest);
+                        profissional.setCreatedDate(new Date());
+                        profissionalRepository.save(profissional);
+                        return "Sucesso, cadastro alterado";
+                    })
+                    .orElse("Profissional não encontrado");
+
+            logger.info("Finished updating professional id={} with result='{}' in {} ms", id, response, elapsedMillis(start));
+            return response;
+        } catch (Exception ex) {
+            logger.error("Error updating professional id={} in {} ms", id, elapsedMillis(start), ex);
+            throw ex;
+        }
     }
 
     @Override
     public String deleteProfissional(Long id) {
-        return profissionalRepository.findById(id)
-                .filter(Profissional::getAtivo)
-                .map(profissional -> {
-                    profissional.setAtivo(false);
-                    profissionalRepository.save(profissional);
-                    return "Sucesso, profissional excluído";
-                })
-                .orElse("Profissional não encontrado");
+        Instant start = Instant.now();
+        logger.info("Deleting professional id={}", id);
+        try {
+            String response = profissionalRepository.findById(id)
+                    .filter(Profissional::getAtivo)
+                    .map(profissional -> {
+                        profissional.setAtivo(false);
+                        profissionalRepository.save(profissional);
+                        return "Sucesso, profissional excluído";
+                    })
+                    .orElse("Profissional não encontrado");
+
+            logger.info("Finished deleting professional id={} with result='{}' in {} ms", id, response, elapsedMillis(start));
+            return response;
+        } catch (Exception ex) {
+            logger.error("Error deleting professional id={} in {} ms", id, elapsedMillis(start), ex);
+            throw ex;
+        }
     }
 
     private ProfissionalResponseDTO filterFields(ProfissionalResponseDTO dto, List<String> fields) {
@@ -120,5 +175,9 @@ public class ManageProfissionalService implements ManageProfissionalUseCase {
             filtered.setContatos(dto.getContatos());
         }
         return filtered;
+    }
+
+    private long elapsedMillis(Instant start) {
+        return Duration.between(start, Instant.now()).toMillis();
     }
 }

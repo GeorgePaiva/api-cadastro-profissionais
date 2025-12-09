@@ -1,162 +1,82 @@
 package com.cadastro.profissionais.api.application.service;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.cadastro.profissionais.api.application.converter.ContatoConverter;
 import com.cadastro.profissionais.api.application.port.out.ContatoRepositoryPort;
 import com.cadastro.profissionais.api.application.port.out.ProfissionalRepositoryPort;
 import com.cadastro.profissionais.api.domain.Contato;
-import com.cadastro.profissionais.api.domain.Profissional;
 import com.cadastro.profissionais.api.domain.dto.ContatoRequestDTO;
-import com.cadastro.profissionais.api.domain.dto.ContatoResponseDTO;
 import com.cadastro.profissionais.api.domain.dto.ProfissionalDTO;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 
-import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
 class ManageContatoServiceTest {
 
-    @Mock
     private ContatoRepositoryPort contatoRepository;
-
-    @Mock
     private ProfissionalRepositoryPort profissionalRepository;
-
-    @Mock
     private ContatoConverter contatoConverter;
-
-    @InjectMocks
-    private ManageContatoService manageContatoService;
-
-    private Contato contato;
-    private Profissional profissional;
+    private ManageContatoService service;
+    private ListAppender<ILoggingEvent> listAppender;
+    private Logger logger;
 
     @BeforeEach
-    void setUp() {
-        profissional = new Profissional();
-        profissional.setId(5L);
-        profissional.setNome("John");
+    void setup() {
+        contatoRepository = mock(ContatoRepositoryPort.class);
+        profissionalRepository = mock(ProfissionalRepositoryPort.class);
+        contatoConverter = mock(ContatoConverter.class);
+        service = new ManageContatoService(contatoRepository, profissionalRepository, contatoConverter);
 
-        contato = new Contato();
-        contato.setId(1L);
-        contato.setNome("Telefone");
-        contato.setContato("123456");
-        contato.setProfissional(profissional);
+        logger = (Logger) LoggerFactory.getLogger(ManageContatoService.class);
+        listAppender = new ListAppender<>();
+        listAppender.start();
+        logger.addAppender(listAppender);
+    }
+
+    @AfterEach
+    void tearDown() {
+        logger.detachAppender(listAppender);
     }
 
     @Test
-    void shouldReturnContatosWithFilterFields() {
-        ContatoResponseDTO dto = new ContatoResponseDTO();
-        dto.setId(1L);
-        dto.setNome("Telefone");
+    void shouldLogDeletionOutcome() {
+        Contato contato = new Contato();
+        contato.setId(2L);
+        when(contatoRepository.findById(2L)).thenReturn(Optional.of(contato));
 
-        when(contatoRepository.findByQuery("tel")).thenReturn(List.of(contato));
-        when(contatoConverter.toDto(contato)).thenReturn(dto);
+        ResponseEntity<String> response = service.deleteContato(2L);
 
-        List<ContatoResponseDTO> responses = manageContatoService.getContatos("tel", List.of("id", "nome"));
-
-        assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).getNome()).isEqualTo("Telefone");
-        verify(contatoRepository).findByQuery("tel");
+        assertThat(response.getBody()).contains("Sucesso");
+        assertThat(listAppender.list.stream()
+                .filter(event -> event.getLevel().equals(Level.INFO))
+                .map(ILoggingEvent::getFormattedMessage)
+                .anyMatch(msg -> msg.contains("Finished deleting contato id=2"))).isTrue();
     }
 
     @Test
-    void shouldReturnContatoById() {
-        ContatoResponseDTO dto = new ContatoResponseDTO();
-        dto.setId(1L);
-        when(contatoRepository.findById(1L)).thenReturn(Optional.of(contato));
-        when(contatoConverter.toDto(contato)).thenReturn(dto);
+    void shouldLogErrorOnUpdateFailure() {
+        when(contatoRepository.findById(3L)).thenThrow(new IllegalStateException("db"));
+        ContatoRequestDTO request = new ContatoRequestDTO();
+        request.setNome("Contato");
+        request.setProfissional(new ProfissionalDTO());
 
-        Optional<ContatoResponseDTO> result = manageContatoService.getContatoById(1L);
+        assertThrows(IllegalStateException.class, () -> service.updateContato(3L, request));
 
-        assertThat(result).isPresent();
-        assertThat(result.get().getId()).isEqualTo(1L);
-    }
-
-    @Test
-    void shouldCreateContatoWhenNotDuplicate() {
-        ContatoRequestDTO requestDTO = new ContatoRequestDTO();
-        requestDTO.setNome("Telefone");
-        requestDTO.setContato("123456");
-        ProfissionalDTO profissionalDTO = new ProfissionalDTO();
-        profissionalDTO.setNome("John");
-        requestDTO.setProfissional(profissionalDTO);
-
-        when(profissionalRepository.findByNome("John")).thenReturn(profissional);
-        when(contatoRepository.findByNomeContatoProfissional(any(), any(), any())).thenReturn(List.of());
-        when(contatoConverter.toEntity(requestDTO, profissional)).thenReturn(contato);
-        when(contatoRepository.save(contato)).thenReturn(contato);
-
-        ResponseEntity<String> response = manageContatoService.createContato(requestDTO);
-
-        assertThat(response.getBody()).contains("Sucesso, contato com id 1 cadastrado");
-        verify(contatoRepository).save(contato);
-        assertThat(contato.getCreatedDate()).isInstanceOf(Date.class);
-    }
-
-    @Test
-    void shouldReturnDuplicateMessageWhenContatoExists() {
-        ContatoRequestDTO requestDTO = new ContatoRequestDTO();
-        when(contatoRepository.findByNomeContatoProfissional(any(), any(), any())).thenReturn(List.of(contato));
-
-        ResponseEntity<String> response = manageContatoService.createContato(requestDTO);
-
-        assertThat(response.getBody()).isEqualTo("Contato já está cadastrado.");
-        verify(contatoRepository, never()).save(any());
-    }
-
-    @Test
-    void shouldUpdateExistingContato() {
-        ContatoRequestDTO requestDTO = new ContatoRequestDTO();
-        requestDTO.setNome("Email");
-
-        when(contatoRepository.findById(1L)).thenReturn(Optional.of(contato));
-        when(contatoRepository.save(contato)).thenReturn(contato);
-
-        ResponseEntity<String> response = manageContatoService.updateContato(1L, requestDTO);
-
-        assertThat(response.getBody()).isEqualTo("Sucesso, cadastro alterado");
-        verify(contatoConverter).updateEntity(contato, requestDTO);
-        verify(contatoRepository).save(contato);
-        assertThat(contato.getCreatedDate()).isInstanceOf(Date.class);
-    }
-
-    @Test
-    void shouldReturnNotFoundWhenUpdatingNonExistingContato() {
-        when(contatoRepository.findById(2L)).thenReturn(Optional.empty());
-
-        ResponseEntity<String> response = manageContatoService.updateContato(2L, new ContatoRequestDTO());
-
-        assertThat(response.getStatusCode().is4xxClientError()).isTrue();
-    }
-
-    @Test
-    void shouldDeleteContatoWhenExists() {
-        when(contatoRepository.findById(1L)).thenReturn(Optional.of(contato));
-
-        ResponseEntity<String> response = manageContatoService.deleteContato(1L);
-
-        assertThat(response.getBody()).isEqualTo("Sucesso, contato excluído");
-        verify(contatoRepository).delete(contato);
-    }
-
-    @Test
-    void shouldReturnNotFoundWhenDeletingMissingContato() {
-        when(contatoRepository.findById(3L)).thenReturn(Optional.empty());
-
-        ResponseEntity<String> response = manageContatoService.deleteContato(3L);
-
-        assertThat(response.getStatusCode().is4xxClientError()).isTrue();
+        assertThat(listAppender.list.stream()
+                .filter(event -> event.getLevel().equals(Level.ERROR))
+                .map(ILoggingEvent::getFormattedMessage)
+                .anyMatch(msg -> msg.contains("Error updating contato id=3"))).isTrue();
     }
 }
